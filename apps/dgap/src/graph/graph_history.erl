@@ -61,9 +61,9 @@ handle_info({'EXIT', Listener, _Reason}, State = #graph_history_state{ listeners
 handle_info(_Info, State) ->
   {noreply, State}.
 
-terminate(Reason, State = #graph_history_state{ listener = undefined }) ->
+terminate(_Reason, #graph_history_state{ listener = undefined }) ->
   ok;
-terminate(Reason, State = #graph_history_state{ listener = StateListener }) ->
+terminate(Reason, #graph_history_state{ listener = StateListener }) ->
   gen_server:reply(StateListener, Reason),
   ok.
 
@@ -91,7 +91,7 @@ read_request(From, State = #graph_history_state{ listener = StateListener }) ->
 add_history_request(History, State = #graph_history_state{ history = StateHistory, listener = undefined }) ->
   {noreply, State#graph_history_state{ history = queue:in(History, StateHistory) }};
 add_history_request(History, State = #graph_history_state{ listener = Listener }) ->
-  gen_server:reply(Listener, History),
+  gen_server:reply(Listener, {ok, History}),
   {noreply, State#graph_history_state{ listener = undefined }}.
 
 listen_loop(GraphHistory, Vertex) ->
