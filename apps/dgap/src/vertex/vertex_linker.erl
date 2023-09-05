@@ -121,5 +121,5 @@ send_request({SenderId, Message}, State = #vertex_linker_state{ id = StateId, ve
       {noreply, State};
     false ->
       StateVertexWorker ! Message,
-      add_history_request({send, SenderId, StateId, Message}, State)
+      add_history_request({SenderId, send, StateId, Message}, State)
   end.
