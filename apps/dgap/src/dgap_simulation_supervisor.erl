@@ -1,8 +1,8 @@
--module(session_handler_supervisor).
+-module(dgap_simulation_supervisor).
 
 -behaviour(supervisor).
 
--export([start_link/0, start_session_handler/2]).
+-export([start_link/0]).
 
 -export([init/1]).
 
@@ -13,16 +13,14 @@
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_session_handler(Socket, Data) ->
-  supervisor:start_child(?MODULE, [Socket, Data]).
-
 %%%===================================================================
 %%% Callbacks
 %%%===================================================================
 
 init([]) ->
-  SupFlags = #{strategy => simple_one_for_one},
-  SessionHandler = #{id => session_handler,
-    start => {session_handler, start_link, []},
-    restart => temporary},
-  {ok, {SupFlags, [SessionHandler]}}.
+  SupFlags = #{strategy => one_for_one},
+  Simulation = #{id => simulation,
+    start => {simulation, start_link, []}},
+  SimulationLogger = #{id => simulation_logger,
+    start => {simulation_logger, start_link, []}},
+  {ok, {SupFlags, [Simulation, SimulationLogger]}}.

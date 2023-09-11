@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, add/3, delete/1, add_topology/2, start/1, stop/1, remove_link/3, reinsert_link/3, read_history/1]).
+-export([start_link/0, add/3, kill/1, add_topology/2, start/1, stop/1, remove_link/3, reinsert_link/3, read_history/1]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
 
@@ -20,8 +20,8 @@ start_link() ->
 add(Id, Module, Fun) ->
   gen_server:call(?MODULE, {add, {Id, Module, Fun}}).
 
-delete(Id) ->
-  gen_server:call(?MODULE, {Id, delete}).
+kill(Id) ->
+  gen_server:call(?MODULE, {Id, kill}).
 
 add_topology(Id, Topology) ->
   gen_server:call(?MODULE, {Id, {add_topology, Topology}}).
@@ -70,8 +70,8 @@ handle_info(_Info, State) ->
 %%% Internals
 %%%===================================================================
 
-handle_request(Graph, delete, _From, State) ->
-  delete_request(Graph, State);
+handle_request(Graph, kill, _From, State) ->
+  kill_request(Graph, State);
 handle_request(Graph, {add_topology, Request}, _From, State) ->
   add_topology_request(Graph, Request, State);
 handle_request(Graph, start, _From, State) ->
@@ -86,12 +86,21 @@ handle_request(Graph, read_history, From, State) ->
   read_history_request(Graph, From, State).
 
 add_request({Id, Module, Fun}, State = #simulation_state{ graphs = StateGraphs }) ->
-  {ok, Graph} = graph_supervisor:start_graph(Id, Module, Fun),
-  {reply, ok, State#simulation_state{ graphs = StateGraphs#{Id => Graph} }}.
+  case StateGraphs of
+    #{Id := _Graph} ->
+      {reply, {error, found}, State};
+    #{} ->    
+      {ok, Graph} = graph_supervisor:start_graph(Id, Module, Fun),
+      {ok, Ref} = graph:ref(Graph),
+      simulation_logger:add(Ref, Id),
+      {reply, ok, State#simulation_state{ graphs = StateGraphs#{Id => Graph} }}
+  end.
 
-delete_request(Graph, State) ->
-  graph_supervisor:stop_graph(Graph),
-  {reply, ok, State}.
+kill_request(Graph, State) ->
+  {ok, Ref} = graph:ref(Graph),
+  Reply = graph_supervisor:stop_graph(Graph),
+  simulation_logger:remove(Ref),
+  {reply, Reply, State}.
 
 add_topology_request(Graph, Topology, State) ->
   graph:add_topology(Graph, Topology),

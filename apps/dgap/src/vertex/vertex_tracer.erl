@@ -31,6 +31,9 @@ handle_call(_Request, _From, State) ->
 handle_cast(_Request, State) ->
   {noreply, State}.
 
+handle_info({trace, _Worker, send, Message, simulation_logger}, State = #vertex_tracer_state{ ref = StateRef, id = StateId }) ->
+  simulation_logger:write(StateRef, StateId, Message),
+  {noreply, State};
 handle_info({trace, _Worker, send, Message, VertexLinker}, State = #vertex_tracer_state{ ref = StateRef, id = StateId }) ->
   vertex_linker:send(VertexLinker, StateRef, StateId, Message),
   {noreply, State}.

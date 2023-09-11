@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/0, compile/1, algorithm/1, algorithms/0]).
+-export([start_link/0, compile/1, algorithms/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
 
@@ -20,9 +20,6 @@ start_link() ->
 compile(File) ->
   gen_server:call(?MODULE, {compile, File}).
 
-algorithm(Module) ->
-  gen_server:call(?MODULE, {algorithm, Module}).
-
 algorithms() ->
   gen_server:call(?MODULE, algorithms).
 
@@ -33,34 +30,53 @@ algorithms() ->
 init([]) ->
   {ok, #compilation_state{ algorithms = #{} }}.
 
-handle_call({compile, File}, _From, State = #compilation_state{ algorithms = Algorithms }) ->
-  case c:c(File) of
-    {ok, Module} ->
-      case Module:module_info(exports) of
-        [{Start, _Arity}] ->
-          {reply, {ok, Module}, State#compilation_state{ algorithms = Algorithms#{Module => Start} }};
-        _ ->
-          code:delete(Module),
-          code:purge(Module),
-          {reply, error, State}
-      end;
-    error ->
-      {reply, error, State}
-  end;
-handle_call({algorithm, Module}, _From, State = #compilation_state{ algorithms = Algorithms }) ->
-  case Algorithms of
-    #{Module := Algorithm} ->
-      {reply, {ok, Algorithm}, State};
-    #{} ->
-      {reply, error, State}
-  end;
+handle_call({compile, Request}, _From, State) ->
+  compile_request(Request, State);
 handle_call(algorithms, _From, State = #compilation_state{ algorithms = Algorithms }) ->
-  {reply, {ok, maps:keys(Algorithms)}, State};
-handle_call(_Request, _From, State) ->
-  {reply, ok, State}.
+  {reply, {ok, maps:keys(Algorithms)}, State}.
 
 handle_cast(_Request, State) ->
   {noreply, State}.
 
 handle_info(_Info, State) ->
   {noreply, State}.
+
+%%%===================================================================
+%%% Internals
+%%%===================================================================
+
+compile_request(File, State) ->
+  case epp:parse_file(File, []) of
+    {ok, Forms} ->
+      [{eof, Line} | Rest] = lists:reverse(Forms),
+      ExtendedForms = lists:reverse([{eof, Line + 1}, log_bif(Line) | Rest]),
+      compile(ExtendedForms, File, State);
+    error ->
+      {reply, error, State}
+  end.
+
+compile(Forms, File, State) ->
+  case compile:forms(Forms) of
+    {ok, Module, Binary} ->
+      load(Module, File, Binary, State);
+    error ->
+      {reply, error, State}
+  end.
+
+load(Module, File, Binary, State = #compilation_state{ algorithms = Algorithms }) ->
+  case code:load_binary(Module, File, Binary) of
+    {module, Module} ->
+      {reply, ok, State#compilation_state{ algorithms = Algorithms#{Module => Module} }};
+    {error, What} ->
+      {reply, {error, What}, State}
+  end.
+
+log_bif(Line) ->
+  {function, Line, log, 1,
+    [{clause, Line,
+      [{var, Line, 'Message'}],
+      [],
+      [{op, Line, '!',
+        {atom, Line, simulation_logger},
+        {var, Line, 'Message'}},
+        {atom, Line, ok}]}]}.

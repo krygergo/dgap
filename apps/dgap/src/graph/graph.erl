@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/3, add_topology/2, start/1, stop/1, blacklist/3, deblacklist/3, read_history/2]).
+-export([start_link/3, ref/1, add_topology/2, start/1, stop/1, blacklist/3, deblacklist/3, read_history/2]).
 
 -export([init/1, handle_continue/2, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
@@ -31,6 +31,9 @@
 
 start_link(Id, Module, Fun) ->
   gen_server:start_link(?MODULE, [Id, Module, Fun], []).
+
+ref(Graph) ->
+  gen_server:call(Graph, ref).
 
 add_topology(Graph, Topology) ->
   gen_server:call(Graph, {add_topology, Topology}).
@@ -65,6 +68,8 @@ handle_continue(process_init, State) ->
 
 handle_call({add_topology, Request}, _From, State) ->
   add_topology_request(Request, State);
+handle_call(ref, _From, State) ->
+  ref_request(State);
 handle_call(start, _From, State) ->
   start_request(State);
 handle_call(stop, _From, State) ->
@@ -115,6 +120,9 @@ add_topology_request(Topology, State = #graph_state{ ref = StateRef, vertices = 
       #vertex{ pid = Vertex, vertex_linker = VertexLinker, edges = Edges }
     end, maps:without(maps:keys(StateVertices), maps:from_list(Topology))),
   {reply, ok, State#graph_state{ vertices = maps:merge(StateVertices, Vertices) }}.
+
+ref_request(State = #graph_state{ ref = StateRef }) ->
+  {reply, {ok, StateRef}, State}.
 
 start_request(State = #graph_state{ module = StateModule, 'fun' = StateFun, vertices = StateVertices }) ->
   maps:foreach(
