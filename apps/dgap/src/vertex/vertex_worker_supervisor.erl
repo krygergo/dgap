@@ -2,7 +2,7 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, start_vertex_worker/2, stop_vertex_worker/1]).
+-export([start_link/0, start_vertex_worker/3, stop_vertex_worker/1]).
 
 -export([init/1]).
 
@@ -13,8 +13,8 @@
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_vertex_worker(Ref, VertexTracer) ->
-  supervisor:start_child(?MODULE, [Ref, VertexTracer]).
+start_vertex_worker(Ref, Id, VertexTracer) ->
+  supervisor:start_child(?MODULE, [Ref, Id, VertexTracer]).
 
 stop_vertex_worker(VertexWorker) ->
   supervisor:terminate_child(?MODULE, VertexWorker).

@@ -33,7 +33,7 @@ init([]) ->
 handle_call({compile, Request}, _From, State) ->
   compile_request(Request, State);
 handle_call(algorithms, _From, State = #compilation_state{ algorithms = Algorithms }) ->
-  {reply, {ok, maps:keys(Algorithms)}, State}.
+  {reply, {ok, [algorithm_info(Module) || Module <- maps:values(Algorithms)]}, State}.
 
 handle_cast(_Request, State) ->
   {noreply, State}.
@@ -48,11 +48,16 @@ handle_info(_Info, State) ->
 compile_request(File, State) ->
   case epp:parse_file(File, []) of
     {ok, Forms} ->
-      [{eof, Line} | Rest] = lists:reverse(Forms),
-      ExtendedForms = lists:reverse([{eof, Line + 1}, log_bif(Line) | Rest]),
-      compile(ExtendedForms, File, State);
-    error ->
-      {reply, error, State}
+      case verify_forms(Forms) of
+        false ->
+          {reply, {error, export_function}, State};
+        true ->        
+          [{eof, Line} | Rest] = lists:reverse(Forms),
+          ExtendedForms = lists:reverse([{eof, Line + 1}, log_bif(Line) | Rest]),
+          compile(ExtendedForms, File, State)
+      end;
+    Error = {error, _} ->
+      {reply, Error, State}
   end.
 
 compile(Forms, File, State) ->
@@ -60,7 +65,7 @@ compile(Forms, File, State) ->
     {ok, Module, Binary} ->
       load(Module, File, Binary, State);
     error ->
-      {reply, error, State}
+      {reply, {error, compile_error}, State}
   end.
 
 load(Module, File, Binary, State = #compilation_state{ algorithms = Algorithms }) ->
@@ -80,3 +85,19 @@ log_bif(Line) ->
         {atom, Line, simulation_logger},
         {var, Line, 'Message'}},
         {atom, Line, ok}]}]}.
+
+verify_forms(Forms) ->
+  lists:foldl(fun(Fun, Acc) -> Fun(Forms) and Acc end, true, [fun verify_export_forms/1]).
+
+verify_export_forms(Forms) ->
+  lists:foldl(
+    fun
+      ({attribute, _, export, Funs}, Acc) ->
+        lists:keymember(1, 2, Funs) or Acc;
+      (_, Acc) ->
+        Acc
+    end, false, Forms).
+
+algorithm_info(Module) ->
+  FunInfo = [Fun || Fun = {Name, Arity} <- Module:module_info(exports), Name =/= module_info, Arity =:= 1],
+  {Module, FunInfo}.

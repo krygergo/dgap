@@ -52,7 +52,7 @@ init([Ref, Id]) ->
 
 handle_continue(process_init, State = #vertex_state{ ref = StateRef, id = StateId }) ->
   {ok, VertexTracer} = start_vertex_tracer(StateRef, StateId),
-  {ok, VertexWorker} = start_vertex_worker(StateRef, VertexTracer),
+  {ok, VertexWorker} = start_vertex_worker(StateRef, StateId, VertexTracer),
   {ok, VertexLinker} = start_vertex_linker(StateRef, StateId, VertexWorker),
   lists:foreach(fun(Process) -> monitor(process, Process) end, [VertexTracer, VertexWorker, VertexLinker]),
   {noreply, State#vertex_state{ vertex_tracer = VertexTracer, vertex_worker = VertexWorker, vertex_linker = VertexLinker }}.
@@ -93,8 +93,8 @@ terminate(_Reason, #vertex_state{ vertex_tracer = StateVertexTracer, vertex_work
 start_vertex_tracer(Ref, Id) ->
   vertex_tracer_supervisor:start_vertex_tracer(Ref, Id).
 
-start_vertex_worker(Ref, VertexTracer) ->
-  vertex_worker_supervisor:start_vertex_worker(Ref, VertexTracer).
+start_vertex_worker(Ref, Id, VertexTracer) ->
+  vertex_worker_supervisor:start_vertex_worker(Ref, Id, VertexTracer).
 
 start_vertex_linker(Ref, Id, VertexWorker) ->
   vertex_linker_supervisor:start_vertex_linker(Ref, Id, VertexWorker).
@@ -142,7 +142,7 @@ process_down(Pid, Reason, State = #vertex_state{
   vertex_worker = StateVertexWorker,
   vertex_linker = StateVertexLinker
 }) when Pid =:= StateVertexWorker ->
-  {ok, VertexWorker} = start_vertex_worker(StateRef, StateVertexTracer),
+  {ok, VertexWorker} = start_vertex_worker(StateRef, StateId, StateVertexTracer),
   monitor(process, VertexWorker),
   vertex_linker:set_vertex_worker(StateVertexLinker, StateRef, VertexWorker),
   case Reason of

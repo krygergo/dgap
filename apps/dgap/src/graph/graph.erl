@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/3, ref/1, add_topology/2, start/1, stop/1, blacklist/3, deblacklist/3, read_history/2]).
+-export([start_link/2, ref/1, add_topology/2, start/2, stop/1, blacklist/3, deblacklist/3, read_history/2]).
 
 -export([init/1, handle_continue/2, handle_call/3, handle_cast/2, handle_info/2, terminate/2]).
 
@@ -10,7 +10,6 @@
   ref :: reference(),
   id :: id(),
   module :: atom(),
-  'fun' :: atom(),
   vertices = #{} :: #{Key :: id() => Value :: vertex()},
   graph_history :: pid()
 }).
@@ -29,8 +28,8 @@
 %%% API
 %%%===================================================================
 
-start_link(Id, Module, Fun) ->
-  gen_server:start_link(?MODULE, [Id, Module, Fun], []).
+start_link(Id, Module) ->
+  gen_server:start_link(?MODULE, [Id, Module], []).
 
 ref(Graph) ->
   gen_server:call(Graph, ref).
@@ -38,8 +37,8 @@ ref(Graph) ->
 add_topology(Graph, Topology) ->
   gen_server:call(Graph, {add_topology, Topology}).
 
-start(Graph) ->
-  gen_server:call(Graph, start).
+start(Graph, Fun) ->
+  gen_server:call(Graph, {start, Fun}).
 
 stop(Graph) ->
   gen_server:call(Graph, stop).
@@ -57,9 +56,9 @@ read_history(Graph, From) ->
 %%% Callbacks
 %%%===================================================================
 
-init([Id, Module, Fun]) ->
+init([Id, Module]) ->
   process_flag(trap_exit, true),
-  {ok, #graph_state{ ref = make_ref(), id = Id, module = Module, 'fun' = Fun, vertices = #{} }, {continue, process_init}}.
+  {ok, #graph_state{ ref = make_ref(), id = Id, module = Module, vertices = #{} }, {continue, process_init}}.
 
 handle_continue(process_init, State) ->
   {ok, GraphHistory} = graph_history_supervisor:start_graph_history(),
@@ -70,8 +69,8 @@ handle_call({add_topology, Request}, _From, State) ->
   add_topology_request(Request, State);
 handle_call(ref, _From, State) ->
   ref_request(State);
-handle_call(start, _From, State) ->
-  start_request(State);
+handle_call({start, Request}, _From, State) ->
+  start_request(Request, State);
 handle_call(stop, _From, State) ->
   stop_request(State);
 handle_call({blacklist, Request}, _From, State) ->
@@ -124,18 +123,23 @@ add_topology_request(Topology, State = #graph_state{ ref = StateRef, vertices = 
 ref_request(State = #graph_state{ ref = StateRef }) ->
   {reply, {ok, StateRef}, State}.
 
-start_request(State = #graph_state{ module = StateModule, 'fun' = StateFun, vertices = StateVertices }) ->
-  maps:foreach(
-    fun(Id, #vertex{ pid = Pid, vertex_linker = VertexLinker, edges = Edges }) ->
-      VertexArgs = {Id, VertexLinker},
-      EdgeArgs = [
-        begin
-          #{Edge := #vertex{ vertex_linker = EdgeVertexLinker }} = StateVertices,
-          {Edge, EdgeVertexLinker}
-        end || Edge <- Edges, maps:is_key(Edge, StateVertices)],
-      vertex:start(Pid, StateModule, StateFun, [{VertexArgs, EdgeArgs}])
-    end, StateVertices),
-  {reply, ok, State}.
+start_request(Fun, State = #graph_state{ module = StateModule, vertices = StateVertices }) ->
+  case lists:keymember(Fun, 1, StateModule:module_info(exports)) of
+    false ->
+      {reply, {error, unknown_function}, State};
+    true ->
+      maps:foreach(
+        fun(Id, #vertex{ pid = Pid, vertex_linker = VertexLinker, edges = Edges }) ->
+          VertexArgs = {Id, VertexLinker},
+          EdgeArgs = [
+            begin
+              #{Edge := #vertex{ vertex_linker = EdgeVertexLinker }} = StateVertices,
+              {Edge, EdgeVertexLinker}
+            end || Edge <- Edges, maps:is_key(Edge, StateVertices)],
+          vertex:start(Pid, StateModule, Fun, [{VertexArgs, EdgeArgs}])
+        end, StateVertices),
+      {reply, ok, State}
+  end.
 
 stop_request(State = #graph_state{ vertices = StateVertices }) ->
   maps:foreach(fun(_, #vertex{ pid = Pid }) -> vertex:stop(Pid) end, StateVertices),
@@ -148,7 +152,7 @@ blacklist_request({Id1, Id2}, State = #graph_state{ vertices = StateVertices }) 
       vertex:blacklist(Pid2, Id1),
       {reply, ok, State};
     #{} ->
-      {reply, ok, State}
+      {reply, error, State}
   end.
 
 deblacklist_request({Id1, Id2}, State = #graph_state{ vertices = StateVertices }) ->
@@ -158,7 +162,7 @@ deblacklist_request({Id1, Id2}, State = #graph_state{ vertices = StateVertices }
       vertex:deblacklist(Pid2, Id1),
       {reply, ok, State};
     #{} ->
-      {reply, ok, State}
+      {reply, error, State}
   end.
 
 read_history_request(From, State = #graph_state{ graph_history = GraphHistory }) ->

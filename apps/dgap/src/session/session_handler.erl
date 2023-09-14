@@ -27,7 +27,8 @@ init([Socket, Data]) ->
   {ok, #session_handler_state{ socket = Socket, data = Data }, {continue, handle_request}}.
 
 handle_continue(handle_request, State = #session_handler_state{ socket = Socket, data = Data }) ->
-  {Ref, MFA, Args} = binary_to_term(Data),
+  Request = {Ref, MFA, Args} = binary_to_term(Data),
+  io:format("~p~n", [Request]),
   Response = erlang:apply(MFA, Args),
   gen_tcp:send(Socket, term_to_binary({Ref, Response})),
   {stop, normal, State}.

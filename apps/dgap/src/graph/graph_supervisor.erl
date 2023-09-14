@@ -2,7 +2,7 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, start_graph/3, stop_graph/1]).
+-export([start_link/0, start_graph/2, stop_graph/1]).
 
 -export([init/1]).
 
@@ -13,8 +13,8 @@
 start_link() ->
   supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_graph(Id, Module, Fun) ->
-  supervisor:start_child(?MODULE, [Id, Module, Fun]).
+start_graph(Id, Module) ->
+  supervisor:start_child(?MODULE, [Id, Module]).
 
 stop_graph(Graph) ->
   supervisor:terminate_child(?MODULE, Graph).
