@@ -2,11 +2,7 @@
     [{description, "Distributed Graph Algorithm Playground"},
      {vsn, "0.1.0"},
      {applications, [kernel, stdlib, compiler]},
-     {modules, [dgap, dgap_supervisor, dgap_app, dgap_graph_supervisor, dgap_vertex_supervisor, 
-        graph_supervisor, graph, vertex_supervisor, vertex, vertex_linker_supervisor, vertex_linker, 
-        vertex_worker_supervisor, vertex_worker, vertex_linker_supervisor, vertex_linker, graph_history_supervisor,
-        graph_history, leader_election, topology, simulation, compilation, session_supervisor, session, session_handler,
-        session_handler_supervisor, simulation_logger, dgap_simulation_supervisor]},
+     {modules, [dgap, dgap_supervisor, dgap_app, simulation, graph, vertex, topology, algorithm, algorithm_util, session, session_supervisor, event_handler]},
      {registered, []},
      {mod, {dgap_app, []}},
      {env, []}

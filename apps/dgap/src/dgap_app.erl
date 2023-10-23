@@ -16,8 +16,7 @@ init() ->
     ["vsc-ext", VscPort] ->
       case gen_tcp:connect("localhost", list_to_integer(VscPort), []) of
         {ok, Socket} ->
-          {ok, Port} = dgap:port(),
-          gen_tcp:send(Socket, list_to_binary(integer_to_list(Port)));
+          gen_tcp:send(Socket, term_to_binary(dgap:port()));
         {error, Reason} ->
           io:format("~p~n", [Reason]),
           ok

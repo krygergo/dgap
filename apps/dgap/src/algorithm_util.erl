@@ -1,6 +1,10 @@
--module(leader_election).
+-module(algorithm_util).
 
--export([leader_election/1]).
+-export([hello_world/1, leader_election/1, ping_pong/1]).
+
+hello_world(_Args) ->
+  event_handler ! "Hello World!",
+  ok.
 
 leader_election({{Id, _Pid}, [{_LeftId, _LeftPid}, {_RightId, RightPid}]}) ->
   RightPid ! {probe, Id},
@@ -30,4 +34,28 @@ leader_election(Id, RightPid, Leader) ->
     agreement ->
       RightPid ! agreement,
       {id, Id, leader, Leader}
+  end.
+
+ping_pong(Args = {{Id1, _Pid1}, [{Id2, _Pid2}]}) when Id1 < Id2 ->
+  ping(Args);
+ping_pong(Args) ->
+  pong(Args).
+  
+ping(Args = {_, [{_, Pid2}]}) ->
+  timer:sleep(1000),
+  Pid2 ! ping,
+  receive
+    pong ->
+      ping(Args)
+  after 
+    2000 ->
+      ping(Args)
+  end.
+  
+pong(Args = {_, [{_, Pid2}]}) ->
+  receive
+    ping ->
+      timer:sleep(1000), 
+      Pid2 ! pong,
+      pong(Args)
   end.

@@ -2,12 +2,16 @@
 
 -export([random/2, ring/1]).
 
+-export_type([topology/0]).
+
+-opaque topology() :: [{Id :: integer(), Edges :: [integer()]}].
+
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-random(Size, Alpha) when is_integer(Size) ->
-  random(lists:seq(1, Size), Alpha);
+random({From, To}, Alpha) ->
+  random(lists:seq(From, To), Alpha);
 random(List, Alpha) when -1 =< Alpha, Alpha =< 1 ->
   random(List, Alpha, #{}).
 
@@ -33,8 +37,8 @@ random([Vertex | Rest], Alpha, Map) ->
       random(Rest, Alpha, Map#{Vertex => lists:sublist(shuffle(Rest), round(Random))})
   end.
 
-ring(Size) when is_integer(Size) ->
-  ring(lists:seq(1, Size));
+ring({From, To}) ->
+  ring(lists:seq(From, To));
 ring([A | []]) ->
   [{A, [A]}];
 ring([A, B | []]) ->
@@ -49,7 +53,7 @@ ring(Prev, Curr, [Next | Rest], Vertices) ->
   ring(Curr, Next, Rest, [{Curr, [Prev, Next]} | Vertices]).
 
 %%%===================================================================
-%%% Internal functions
+%%% Internals
 %%%===================================================================
 
 shuffle(List) when is_list(List) ->

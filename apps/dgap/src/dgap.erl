@@ -6,7 +6,7 @@
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
 
--record(dgap_state, {
+-record(state, {
   listen_socket
 }).
 
@@ -27,13 +27,13 @@ port() ->
 init([]) ->
   case gen_tcp:listen(0, [binary]) of
     {ok, ListenSocket} ->
-      spawn_link(fun () -> listener(ListenSocket) end),
-      {ok, #dgap_state{ listen_socket = ListenSocket }};
+      spawn_link(fun() -> listener(ListenSocket) end),
+      {ok, #state{ listen_socket = ListenSocket }};
     {error, Reason} ->
       {stop, Reason}
   end.
 
-handle_call(port, _From, State = #dgap_state{ listen_socket = ListenSocket }) ->
+handle_call(port, _From, State = #state{ listen_socket = ListenSocket }) ->
   {reply, inet:port(ListenSocket), State};
 handle_call(_Request, _From, State) ->
   {reply, ok, State}.
@@ -45,7 +45,7 @@ handle_info(_Info, State) ->
   {noreply, State}.
 
 %%%===================================================================
-%%% Internal functions
+%%% Internals
 %%%===================================================================
 
 listener(ListenSocket) ->
