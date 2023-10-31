@@ -6,7 +6,7 @@ Graph algorithms are compiled as erlang modules. These modules must be implement
 
 ```-type vertex() :: { Id :: term(), Pid :: pid() }```
 
-```-type arguments() :: {Vertex :: vertex(), Edges :: [vertex()]}```
+```-type arguments() :: {Vertex :: vertex(), Edges :: [Neighbour :: vertex()]}```
 
 #### Example
 
