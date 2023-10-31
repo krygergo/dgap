@@ -12,7 +12,7 @@ Graph algorithms are compiled as erlang modules. These modules must be implement
 
     leader_election({{Id, _Pid}, [{_LeftId, _LeftPid}, {_RightId, RightPid}]})
 
-Above snippet is taken from the algorithm_util module. Which is a module with some predefined graph algorithms.
+Above argument definition for the leader_election algorithm is taken from the algorithm_util module. The algorithm_util module contains some predefined graph algorithms.
 
 ## Build
 
