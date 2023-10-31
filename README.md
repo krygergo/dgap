@@ -2,7 +2,7 @@
 
 An OTP application with a simple API to run graph algorithms.
 
-[A vscode extension is available for this tool](https://github.com/krygergo/dgap-vsc-ext).
+[A vscode extension is available for this tool](https://github.com/krygergo/dgap-vsc-ext)
 
 Graph algorithms are compiled as erlang modules. These modules must be implemented with a start function with argument defined like:
 
