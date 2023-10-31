@@ -2,11 +2,11 @@
 
 An OTP application with a simple API to run graph algorithms. 
 
-Graph algorithms are compiled as erlang modules. These modules must be implemented with a start function with arguments defined like:
+Graph algorithms are compiled as erlang modules. These modules must be implemented with a start function with argument defined like:
 
 ```-type vertex() :: { Id :: term(), Pid :: pid() }```
 
-```-type arguments() :: {Vertex :: vertex(), Edges :: [Neighbour :: vertex()]}```
+```-type argument() :: {Vertex :: vertex(), Edges :: [Neighbour :: vertex()]}```
 
 #### Example
 
