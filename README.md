@@ -1,6 +1,18 @@
 # Distributed Graph Algorithm Playground (DGAP)
 
-An OTP application with a simple API to run graph algorithms.
+An OTP application with a simple API to run graph algorithms. 
+
+Graph algorithms are compiled as erlang modules. These modules must be implemented with a start function with arguments defined like:
+
+```-type vertex() :: { Id :: term(), Pid :: pid() }```
+
+```-type arguments() :: {Vertex :: vertex(), Edges :: [vertex()]}```
+
+#### Example
+
+    leader_election({{Id, _Pid}, [{_LeftId, _LeftPid}, {_RightId, RightPid}]})
+
+Above snippet is taken from the algorithm_util module. Which is a module with some predefined graph algorithms.
 
 ## Build
 
