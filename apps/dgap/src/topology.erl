@@ -12,7 +12,7 @@
 
 random({From, To}, Alpha) ->
   random(lists:seq(From, To), Alpha);
-random(List, Alpha) when -1 =< Alpha, Alpha =< 1 ->
+random(List, Alpha) when -1.0 =< Alpha, Alpha =< 1.0 ->
   random(List, Alpha, #{}).
 
 random([], _Alpha, Map) ->

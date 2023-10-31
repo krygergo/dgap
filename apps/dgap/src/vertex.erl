@@ -108,7 +108,7 @@ handle_cast_request({deblacklist, Id}, State) ->
   deblacklist_request(Id, State).
 
 kill_request(State = #state{ vertex_worker = undefined }) ->
-  {stop, killed, State};
+  {stop, normal, State};
 kill_request(State = #state{ vertex_worker = VertexWorker }) ->
   exit(VertexWorker, kill),
   kill_request(State#state{ vertex_worker = undefined }).

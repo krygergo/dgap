@@ -1,9 +1,7 @@
 @echo off
 
-set erl_call="%bindir%\erl_call.exe"
-
 if "%1"=="start" goto start
-if "%1"=="call" goto call
+if "%1"=="observer" goto observer
 
 echo Unknown command: "%1"
 goto :eof
@@ -12,5 +10,5 @@ goto :eof
 %erl% -boot %boot_script% -sname %node_name% -setcookie %cookie% -extra "%2"
 goto :eof
 
-:call
-%erl_call% -a %2 -n %node_name% -c %cookie%
+:observer
+erl_call -a "observer start" -n %node_name% -c %cookie%

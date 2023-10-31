@@ -119,7 +119,7 @@ handle_cast_request({deblacklist, Request}, State) ->
 -spec kill_request(state()) -> {stop, killed, state()}.
 kill_request(State = #state{ vertices = Vertices }) ->
   maps:foreach(fun(_, #vertex{ pid = Pid }) -> vertex:kill(Pid) end, Vertices),
-  {stop, killed, State}.
+  {stop, normal, State}.
 
 -spec blacklist_request({integer(), integer()}, state()) -> {noreply, state()}.
 blacklist_request({Id1, Id2}, State = #state{ vertices = Vertices }) ->

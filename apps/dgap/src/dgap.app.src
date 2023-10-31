@@ -1,7 +1,7 @@
 {application, dgap, 
     [{description, "Distributed Graph Algorithm Playground"},
      {vsn, "0.1.0"},
-     {applications, [kernel, stdlib, compiler]},
+     {applications, [kernel, stdlib, compiler, runtime_tools]},
      {modules, [dgap, dgap_supervisor, dgap_app, simulation, graph, vertex, topology, algorithm, algorithm_util, session, session_supervisor, event_handler]},
      {registered, []},
      {mod, {dgap_app, []}},
