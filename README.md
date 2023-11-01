@@ -18,7 +18,7 @@ Above argument definition for the leader_election algorithm is taken from the al
 
 [A vscode extension](https://github.com/krygergo/dgap-vsc-ext) is available for this tool. Download the released vsix file from the linked repository and run the following command in a vscode termnial.
 
-    code --install-extension path/to/dgap.vsix
+    code --install-extension path/to/dgap-win32-x64-<version>.vsix
 
 ## Build
 
