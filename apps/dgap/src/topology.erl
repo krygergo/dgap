@@ -4,7 +4,7 @@
 
 -export_type([topology/0]).
 
--opaque topology() :: [{Id :: integer(), Edges :: [integer()]}].
+-opaque topology(Id :: term()) :: [{Id, Edges :: [Id]}].
 
 %%%===================================================================
 %%% API

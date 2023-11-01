@@ -2,6 +2,8 @@
 
 -behaviour(gen_server).
 
+-define(MB, 1048576).
+
 -export([start_link/0, port/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2]).
@@ -25,7 +27,7 @@ port() ->
 %%%===================================================================
 
 init([]) ->
-  case gen_tcp:listen(0, [binary]) of
+  case gen_tcp:listen(0, [binary, {buffer, ?MB}]) of
     {ok, ListenSocket} ->
       spawn_link(fun() -> listener(ListenSocket) end),
       {ok, #state{ listen_socket = ListenSocket }};
