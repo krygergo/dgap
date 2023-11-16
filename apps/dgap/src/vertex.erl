@@ -2,7 +2,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/2, vertex_linker/1, start/4, stop/1, kill/1, blacklist/2, deblacklist/2]).
+-export([start_link/2, vertex_linker/1, prepare/4, start/1, stop/1, kill/1, blacklist/2, deblacklist/2]).
 
 -export([init/1, handle_continue/2, handle_call/3, handle_cast/2, handle_info/2]).
 
@@ -25,8 +25,11 @@ start_link(Ref, Id) ->
 vertex_linker(Vertex) ->
   gen_server:call(Vertex, vertex_linker).
 
-start(Vertex, Module, Fun, Args) ->
-  gen_server:call(Vertex, {start, {Module, Fun, Args}}).
+prepare(Vertex, Module, Fun, Args) ->
+  gen_server:call(Vertex, {prepare, {Module, Fun, Args}}).
+
+start(Vertex) ->
+  gen_server:call(Vertex, start).
 
 stop(Vertex) ->
   gen_server:call(Vertex, stop).
@@ -70,8 +73,10 @@ handle_info(_Info, State) ->
 
 handle_call_request(vertex_linker, State) ->
   vertex_linker_request(State);
-handle_call_request({start, Request}, State) ->
-  start_request(Request, State);
+handle_call_request({prepare, Request}, State) ->
+  prepare_request(Request, State);
+handle_call_request(start, State) ->
+  start_request(State);
 handle_call_request(stop, State) ->
   stop_request(State).
 
@@ -80,18 +85,14 @@ vertex_linker_request(State = #state{ vertex_linker = undefined }) ->
 vertex_linker_request(State = #state{ vertex_linker = VertexLinker }) ->
   {reply, {ok, VertexLinker}, State}.
 
-start_request({Module, Fun, Args}, State = #state{ ref = Ref, vertex_tracer = VertexTracer, vertex_worker = undefined, vertex_linker = VertexLinker }) ->
+prepare_request({Module, Fun, Args}, State = #state{ ref = Ref, vertex_tracer = VertexTracer, vertex_worker = undefined, vertex_linker = VertexLinker }) ->
   VertexWorker = spawn_link_vertex_worker(Ref),
-  VertexLinker ! {Ref, {self(), vertex_worker, VertexWorker}},
-  receive
-    ok ->
-      VertexWorker ! {start, VertexTracer, Module, Fun, Args},
-      {reply, ok, State#state{ vertex_worker = VertexWorker }}
-  after
-    1000 ->
-      {reply, {error, start}}
-  end;
-start_request(_Request, State) ->
+  VertexWorker ! {prepare, VertexTracer, Module, Fun, Args},
+  VertexLinker ! {Ref, {vertex_worker, VertexWorker}},
+  {reply, ok, State#state{ vertex_worker = VertexWorker }}.
+
+start_request(State = #state{ vertex_worker = VertexWorker }) ->
+  VertexWorker ! start,
   {reply, ok, State}.
 
 stop_request(State = #state{ vertex_worker = undefined }) ->
@@ -150,10 +151,13 @@ spawn_link_vertex_worker(Ref) ->
   spawn_link(
     fun() ->
       receive
-        {start, VertexTracer, Module, Fun, Args} ->
-          erlang:trace(self(), true, [{tracer, VertexTracer}, send, set_on_spawn]),
-          Result = apply(Module, Fun, Args),
-          exit({Ref, result, Result})
+        {prepare, VertexTracer, Module, Fun, Args} ->
+          erlang:trace(self(), true, [{tracer, VertexTracer}, send]),
+          receive
+            start ->
+              Result = apply(Module, Fun, Args),
+              exit({Ref, result, Result})
+          end
       end
     end
   ).
@@ -170,12 +174,16 @@ spawn_link_vertex_linker(Ref, Id) ->
                 true ->
                   VertexLinker(StateMap);
                 false ->
-                  event_handler:message(Ref, {SenderId, Id, Message}),
-                  VertexWorker ! Message,
-                  VertexLinker(StateMap)
+                  case VertexWorker of
+                    undefined ->
+                      VertexLinker(StateMap);
+                    _ ->
+                      event_handler:message(Ref, {SenderId, Id, Message}),
+                      VertexWorker ! Message,
+                      VertexLinker(StateMap)
+                  end
               end;
-            {SenderPid, vertex_worker, NewVertexWorker} ->
-              SenderPid ! ok,
+            {vertex_worker, NewVertexWorker} ->
               VertexLinker(StateMap#{vertex_worker => NewVertexWorker});
             {blacklist, BId} ->
               VertexLinker(StateMap#{blacklist => sets:add_element(BId, Blacklist)});

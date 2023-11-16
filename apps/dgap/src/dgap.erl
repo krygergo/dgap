@@ -27,7 +27,7 @@ port() ->
 %%%===================================================================
 
 init([]) ->
-  case gen_tcp:listen(0, [binary, {buffer, ?MB}]) of
+  case gen_tcp:listen(0, [binary, {buffer, ?MB}, {packet, 4}]) of
     {ok, ListenSocket} ->
       spawn_link(fun() -> listener(ListenSocket) end),
       {ok, #state{ listen_socket = ListenSocket }};

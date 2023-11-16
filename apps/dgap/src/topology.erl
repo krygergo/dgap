@@ -2,9 +2,9 @@
 
 -export([random/2, ring/1]).
 
--export_type([topology/0]).
+-export_type([topology/1]).
 
--opaque topology(Id :: term()) :: [{Id, Edges :: [Id]}].
+-opaque topology(Id) :: [{Id, Edges :: [Id]}].
 
 %%%===================================================================
 %%% API

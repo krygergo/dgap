@@ -2,7 +2,6 @@
 
 -export([compile/1]).
 
--spec compile(File :: string()) -> ok | {error, Reason :: term()}.
 compile(File) ->
   case epp:parse_file(File, []) of
     {ok, Forms} ->

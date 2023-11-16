@@ -21,23 +21,18 @@
 %%% API
 %%%===================================================================
 
--spec start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}.
 start_link() ->
   gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
--spec add(Id :: term()) -> ok | {error, exists}.
 add(Id) ->
   gen_server:call(?MODULE, {add, Id}).
 
--spec topology(Id :: term(), Topology :: topology:topology()) -> ok.
 topology(Id, Topology) ->
   gen_server:call(?MODULE, {Id, {topology, Topology}}).
 
--spec start(Id :: term(), Module :: atom()) -> ok.
 start(Id, Module) ->
   gen_server:call(?MODULE, {Id, {start, Module}}).
 
--spec start(Id :: term(), Module :: atom(), Fun :: atom()) -> ok.
 start(Id, Module, Fun) ->
   gen_server:call(?MODULE, {Id, {start, {Module, Fun}}}).
 

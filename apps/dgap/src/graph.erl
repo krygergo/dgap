@@ -18,17 +18,12 @@
   edges
 }).
 
--type topology() :: topology:topology().
-
--type state() :: #state{}.
-
 -type vertex() :: #vertex{}.
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
--spec start_link(Ref :: reference(), Id :: integer()) -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}.
 start_link(Ref, Id) ->
   gen_server:start_link(?MODULE, [Ref, Id], []).
 
@@ -80,7 +75,6 @@ handle_call_request({start, Request}, State) ->
 handle_call_request(stop, State) ->
   stop_request(State).
 
--spec topology_request(topology(), state()) -> {reply, ok, state()}.
 topology_request(Topology, State = #state{ ref = Ref, vertices = Vertices }) ->
   NewVertices = maps:map(
     fun(Id, Edges) -> 
@@ -90,7 +84,6 @@ topology_request(Topology, State = #state{ ref = Ref, vertices = Vertices }) ->
     end, maps:without(maps:keys(Vertices), maps:from_list(Topology))),
   {reply, ok, State#state{ vertices = maps:merge(Vertices, NewVertices) }}.
 
--spec start_request({atom(), atom()}, state()) -> {reply, ok, state()}.
 start_request({Module, Fun}, State = #state{ vertices = Vertices }) ->
   maps:foreach(
     fun(Id, #vertex{ pid = Pid, vertex_linker = VertexLinker, edges = Edges }) ->
@@ -100,11 +93,11 @@ start_request({Module, Fun}, State = #state{ vertices = Vertices }) ->
           #{Edge := #vertex{ vertex_linker = EdgeVertexLinker }} = Vertices,
           {Edge, EdgeVertexLinker}
         end || Edge <- Edges, maps:is_key(Edge, Vertices)],
-      vertex:start(Pid, Module, Fun, [{VertexArgs, EdgeArgs}])
+      vertex:prepare(Pid, Module, Fun, [{VertexArgs, EdgeArgs}])
     end, Vertices),
+  maps:foreach(fun(_Id, #vertex{ pid = Pid }) -> vertex:start(Pid) end, Vertices),
   {reply, ok, State}.
 
--spec stop_request(state()) -> {reply, ok, state()}.
 stop_request(State = #state{ vertices = Vertices }) ->
   maps:foreach(fun(_, #vertex{ pid = Pid }) -> vertex:stop(Pid) end, Vertices),
   {reply, ok, State}.
@@ -116,12 +109,10 @@ handle_cast_request({blacklist, Request}, State) ->
 handle_cast_request({deblacklist, Request}, State) ->
   deblacklist_request(Request, State).
 
--spec kill_request(state()) -> {stop, killed, state()}.
 kill_request(State = #state{ vertices = Vertices }) ->
   maps:foreach(fun(_, #vertex{ pid = Pid }) -> vertex:kill(Pid) end, Vertices),
   {stop, normal, State}.
 
--spec blacklist_request({integer(), integer()}, state()) -> {noreply, state()}.
 blacklist_request({Id1, Id2}, State = #state{ vertices = Vertices }) ->
   case Vertices of
     #{Id1 := #vertex{ pid = Pid1 }, Id2 := #vertex{ pid = Pid2 }} ->
@@ -132,7 +123,6 @@ blacklist_request({Id1, Id2}, State = #state{ vertices = Vertices }) ->
       {noreply, State}
   end.
 
--spec deblacklist_request({integer(), integer()}, state()) -> {noreply, state()}.
 deblacklist_request({Id1, Id2}, State = #state{ vertices = Vertices }) ->
   case Vertices of
     #{Id1 := #vertex{ pid = Pid1 }, Id2 := #vertex{ pid = Pid2 }} ->
